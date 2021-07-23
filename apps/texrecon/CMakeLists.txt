@@ -1,10 +1,12 @@
 file (GLOB HEADERS "*.h")
 file (GLOB SOURCES "[^_]*.cpp")
 
-set(BIN texrecon)
-
-add_executable(${BIN} ${SOURCES})
-set_property(TARGET ${BIN} PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-add_dependencies(${BIN} ext_mve)
-target_link_libraries(${BIN} tex ${TBB_LIBRARIES} -lmve -lmve_util)
-install(TARGETS ${BIN} RUNTIME DESTINATION bin)
+add_executable(texrecon ${SOURCES})
+set_target_properties(texrecon PROPERTIES INTERPROCEDURAL_OPTIMIZATION True)
+target_link_libraries(texrecon tex mve::core $<$<BOOL:${OpenMP_FOUND}>:OpenMP::OpenMP_CXX> tex_settings)
+install(TARGETS texrecon
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)

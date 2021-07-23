@@ -11,8 +11,8 @@
 #include <map>
 
 #include <util/file_system.h>
-#include <mve/image_tools.h>
-#include <mve/image_io.h>
+#include <core/image_tools.h>
+#include <core/image_io.h>
 
 #include "texture_atlas.h"
 

@@ -15,8 +15,8 @@
 
 #include <util/exception.h>
 #include <math/vector.h>
-#include <mve/mesh.h>
-#include <mve/image.h>
+#include <core/mesh.h>
+#include <core/image.h>
 
 #include "tri.h"
 #include "texture_patch.h"

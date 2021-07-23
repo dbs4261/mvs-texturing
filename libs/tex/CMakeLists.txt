@@ -1,9 +1,20 @@
 file (GLOB HEADERS "*.h")
 file (GLOB SOURCES "[^_]*.cpp")
 
-set(LIBRARY tex)
-add_library(${LIBRARY} STATIC ${SOURCES})
-set_property(TARGET ${LIBRARY} PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-add_dependencies(${LIBRARY} ext_mve ext_rayint ext_eigen ext_mapmap)
-target_link_libraries(${LIBRARY} ${TBB_LIBRARIES} -lmve -lmve_util ${JPEG_LIBRARIES} ${PNG_LIBRARIES} ${TIFF_LIBRARIES})
-install(TARGETS ${LIBRARY} ARCHIVE DESTINATION lib)
+add_library(tex STATIC ${SOURCES})
+if (IPO_SUPPORTED)
+    set_target_properties(tex PROPERTIES INTERPROCEDURAL_OPTIMIZATION True)
+endif()
+target_link_libraries(tex
+    PUBLIC
+        Eigen3::Eigen
+        mve::core
+    PRIVATE
+        tex_settings
+        rayint::acc
+        mapmap
+        $<$<BOOL:${OpenMP_FOUND}>:OpenMP::OpenMP_CXX>
+)
+target_include_directories(tex PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/libs>
+)

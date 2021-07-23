@@ -13,7 +13,7 @@
 #include <fstream>
 
 #include <util/timer.h>
-#include <mve/image_tools.h>
+#include <core/image_tools.h>
 
 #include "defines.h"
 #include "settings.h"

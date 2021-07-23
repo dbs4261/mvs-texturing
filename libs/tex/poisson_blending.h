@@ -10,7 +10,7 @@
 #ifndef TEX_POISSONBLENDING_HEADER
 #define TEX_POISSONBLENDING_HEADER
 
-#include "mve/image.h"
+#include <core/image.h>
 
 void
 poisson_blend(mve::FloatImage::ConstPtr src, mve::ByteImage::ConstPtr mask,

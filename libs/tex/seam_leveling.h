@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#include <mve/mesh.h>
+#include <core/mesh.h>
 
 #include "defines.h"
 #include "uni_graph.h"

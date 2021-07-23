@@ -9,10 +9,10 @@
 
 #include <util/timer.h>
 #include <util/tokenizer.h>
-#include <mve/image_io.h>
-#include <mve/image_tools.h>
-#include <mve/bundle_io.h>
-#include <mve/scene.h>
+#include <core/image_io.h>
+#include <core/image_tools.h>
+#include <core/bundle_io.h>
+#include <core/scene.h>
 
 #include "progress_counter.h"
 #include "texturing.h"
@@ -179,7 +179,7 @@ void
 from_nvm_scene(std::string const & nvm_file,
     std::vector<TextureView> * texture_views, std::string const & tmp_dir)
 {
-    std::vector<mve::NVMCameraInfo> nvm_cams;
+    std::vector<mve::AdditionalCameraInfo> nvm_cams;
     mve::Bundle::Ptr bundle = mve::load_nvm_bundle(nvm_file, &nvm_cams);
     mve::Bundle::Cameras& cameras = bundle->get_cameras();
 
@@ -188,7 +188,7 @@ from_nvm_scene(std::string const & nvm_file,
     for (std::size_t i = 0; i < cameras.size(); ++i) {
         view_counter.progress<SIMPLE>();
         mve::CameraInfo& mve_cam = cameras[i];
-        mve::NVMCameraInfo const& nvm_cam = nvm_cams[i];
+        mve::AdditionalCameraInfo const& nvm_cam = nvm_cams[i];
 
         mve::ByteImage::Ptr image = mve::image::load_file(nvm_cam.filename);
 

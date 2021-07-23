@@ -13,7 +13,7 @@
 
 #include <util/exception.h>
 #include <util/file_system.h>
-#include <mve/image_io.h>
+#include <core/image_io.h>
 
 #include "material_lib.h"
 

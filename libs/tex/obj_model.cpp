@@ -12,7 +12,7 @@
 #include <cstring>
 #include <cerrno>
 
-#include <mve/mesh.h>
+#include <core/mesh.h>
 #include <util/exception.h>
 #include <util/file_system.h>
 

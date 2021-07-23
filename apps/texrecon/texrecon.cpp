@@ -10,13 +10,12 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <tbb/task_scheduler_init.h>
 #include <omp.h>
 
 #include <util/timer.h>
 #include <util/system.h>
 #include <util/file_system.h>
-#include <mve/mesh_io_ply.h>
+#include <core/mesh_io_ply.h>
 
 #include "tex/util.h"
 #include "tex/timer.h"
@@ -60,7 +59,6 @@ int main(int argc, char **argv) {
     }
 
     // Set the number of threads to use.
-    tbb::task_scheduler_init schedule(conf.num_threads > 0 ? conf.num_threads : tbb::task_scheduler_init::automatic);
     if (conf.num_threads > 0) {
         omp_set_dynamic(0);
         omp_set_num_threads(conf.num_threads);
@@ -107,7 +105,7 @@ int main(int argc, char **argv) {
             std::cout << "\tLoading data cost file... " << std::flush;
             try {
                 tex::DataCosts::load_from_file(conf.data_cost_file, &data_costs);
-            } catch (util::FileException e) {
+            } catch (util::FileException& e) {
                 std::cout << "failed!" << std::endl;
                 std::cerr << e.what() << std::endl;
                 std::exit(EXIT_FAILURE);

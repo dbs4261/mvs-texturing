@@ -13,7 +13,7 @@
 #include <vector>
 
 #include <math/vector.h>
-#include <mve/mesh.h>
+#include <core/mesh.h>
 
 #include "tri.h"
 #include "poisson_blending.h"

@@ -11,7 +11,7 @@
 #include <list>
 
 #include <util/timer.h>
-#include <mve/image_tools.h>
+#include <core/image_tools.h>
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
 

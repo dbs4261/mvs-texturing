@@ -11,7 +11,7 @@
 #define TEX_MATERIALLIB_HEADER
 
 #include <vector>
-#include <mve/image.h>
+#include <core/image.h>
 
 struct Material {
     std::string name;
