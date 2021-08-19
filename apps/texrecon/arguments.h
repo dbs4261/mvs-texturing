@@ -29,6 +29,7 @@ struct Arguments {
     bool write_view_selection_model;
 
     int num_threads;
+    unsigned int resolution;
 
     /** Returns a muliline string of the current arguments. */
     std::string to_string();

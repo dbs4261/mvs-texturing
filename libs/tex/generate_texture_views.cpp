@@ -7,6 +7,7 @@
  * of the BSD 3-Clause license. See the LICENSE.txt file for details.
  */
 
+#include <util/strings.h>
 #include <util/timer.h>
 #include <util/tokenizer.h>
 #include <core/image_io.h>
@@ -20,8 +21,8 @@
 TEX_NAMESPACE_BEGIN
 
 void
-from_mve_scene(std::string const & scene_dir, std::string const & image_name,
-    std::vector<TextureView> * texture_views) {
+from_mve_scene(std::string const & scene_dir, std::string const & embedding,
+    std::vector<TextureView> * texture_views, unsigned int resolution) {
 
     mve::Scene::Ptr scene;
     try {
@@ -33,40 +34,73 @@ from_mve_scene(std::string const & scene_dir, std::string const & image_name,
     std::size_t num_views = scene->get_views().size();
     texture_views->reserve(num_views);
 
-    ProgressCounter view_counter("\tLoading", num_views);
+    bool using_level = embedding.find("-L") != std::string::npos;
+    if (using_level && resolution != 0) {
+      std::cout << "Warning: ignoring resolution parameter because an embedding with a level was given" << std::endl;
+    }
+
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < num_views; ++i) {
-        view_counter.progress<SIMPLE>();
+        std::string used_embedding = embedding;
 
         mve::View::Ptr view = scene->get_view_by_id(i);
         if (view == NULL) {
-            view_counter.inc();
             continue;
         }
 
-        if (!view->has_image(image_name, mve::IMAGE_TYPE_UINT8)) {
-            std::cout << "Warning: View " << view->get_name() << " has no byte image "
-                << image_name << std::endl;
-            continue;
+        if (!view->has_image(used_embedding, mve::IMAGE_TYPE_UINT8)) {
+            if (embedding == "original" && view->has_image("undistorted")) {
+                std::cout << "Warning: View " << view->get_name() << " did not have embedding \"original\""
+                    << " but does have \"undistorted\" which will be used instead" << std::endl;
+                used_embedding = "undistorted";
+            } else if (embedding == "undistorted" && view->has_image("original")) {
+                std::cout << "Undistorting view " << view->get_name() << std::endl;
+                used_embedding = "original";
+            } else {
+                std::cout << "Warning: View " << view->get_name() << " has no byte image "
+                    << used_embedding << std::endl;
+                continue;
+            }
         }
 
-        mve::View::ImageProxy const * image_proxy = view->get_image_proxy(image_name);
+        if (!using_level) {
+            const std::string target_embedding = "undist-L" + std::to_string(resolution);
+            if (!view->has_image(target_embedding, mve::IMAGE_TYPE_UINT8)) {
+                #pragma omp critical
+                { std::cout << "Rescaling view " << view->get_name() << std::endl; }
+                const mve::CameraInfo& camera = view->get_camera();
+                mve::ByteImage::Ptr image = view->get_byte_image(used_embedding);
+                if (used_embedding == "original") {
+                    image = mve::image::image_undistort_k2k4<uint8_t>(image,
+                        camera.flen, camera.dist[0], camera.dist[1]);
+                }
+                for (unsigned int r = 0; r < resolution; ++r) {
+                    image = mve::image::rescale_half_size_gaussian<uint8_t>(image);
+                }
+                view->set_image(image, target_embedding);
+                view->save_view();
+            }
+            used_embedding = "undist-L" + std::to_string(resolution);
+        }
 
+        mve::View::ImageProxy const * image_proxy = view->get_image_proxy(used_embedding);
         if (image_proxy->channels < 3) {
-            std::cerr << "Image " << image_name << " of view " <<
+            std::cout << "Warning: Image " << used_embedding << " of view " <<
                 view->get_name() << " is not a color image!" << std::endl;
-            exit(EXIT_FAILURE);
+            continue;
         }
 
-        texture_views->push_back(
-            TextureView(view->get_id(), view->get_camera(), util::fs::abspath(
-            util::fs::join_path(view->get_directory(), image_proxy->filename))));
-        view_counter.inc();
+        #pragma omp critical
+        {
+            texture_views->push_back(TextureView(view->get_id(), view->get_camera(), util::fs::abspath(
+                    util::fs::join_path(view->get_directory(), image_proxy->filename))));
+        }
     }
 }
 
 void
-from_images_and_camera_files(std::string const & path,
-    std::vector<TextureView> * texture_views, std::string const & tmp_dir)
+from_images_and_camera_files(std::string const & path, std::vector<TextureView> * texture_views,
+    std::string const & tmp_dir, unsigned int resolution)
 {
     util::fs::Directory dir(path);
     std::sort(dir.begin(), dir.end());
@@ -109,7 +143,7 @@ from_images_and_camera_files(std::string const & path,
     }
 
     ProgressCounter view_counter("\tLoading", files.size() / 2);
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < files.size(); i += 2) {
         view_counter.progress<SIMPLE>();
         const std::string cam_file = files[i];
@@ -161,6 +195,10 @@ from_images_and_camera_files(std::string const & path,
                     cam_info.flen, cam_info.dist[0]);
             }
 
+            for (unsigned int r = 0; r < resolution; ++r) {
+                mve::image::rescale_half_size_gaussian<uint8_t>(image);
+            }
+
             image_file = util::fs::join_path(
                 tmp_dir,
                 util::fs::replace_extension(util::fs::basename(img_file), "png")
@@ -176,15 +214,15 @@ from_images_and_camera_files(std::string const & path,
 }
 
 void
-from_nvm_scene(std::string const & nvm_file,
-    std::vector<TextureView> * texture_views, std::string const & tmp_dir)
+from_nvm_scene(std::string const & nvm_file, std::vector<TextureView> * texture_views,
+    std::string const & tmp_dir, unsigned int resolution)
 {
     std::vector<mve::AdditionalCameraInfo> nvm_cams;
     mve::Bundle::Ptr bundle = mve::load_nvm_bundle(nvm_file, &nvm_cams);
     mve::Bundle::Cameras& cameras = bundle->get_cameras();
 
     ProgressCounter view_counter("\tLoading", cameras.size());
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < cameras.size(); ++i) {
         view_counter.progress<SIMPLE>();
         mve::CameraInfo& mve_cam = cameras[i];
@@ -198,6 +236,9 @@ from_nvm_scene(std::string const & nvm_file,
         image = mve::image::image_undistort_vsfm<uint8_t>
             (image, mve_cam.flen, nvm_cam.radial_distortion);
 
+        for (unsigned int r = 0; r < resolution; ++r) {
+            mve::image::rescale_half_size_gaussian<uint8_t>(image);
+        }
 
         const std::string image_file = util::fs::join_path(
             tmp_dir,
@@ -216,8 +257,8 @@ from_nvm_scene(std::string const & nvm_file,
 }
 
 void
-generate_texture_views(std::string const & in_scene,
-    std::vector<TextureView> * texture_views, std::string const & tmp_dir)
+generate_texture_views(std::string const & in_scene, std::vector<TextureView> * texture_views,
+    std::string const & tmp_dir, unsigned int resolution)
 {
     /* Determine input format. */
 
@@ -226,13 +267,13 @@ generate_texture_views(std::string const & in_scene,
         std::string const & file = in_scene;
         std::string extension = util::string::uppercase(util::string::right(file, 3));
         if (extension == "NVM") {
-            from_nvm_scene(file, texture_views, tmp_dir);
+            from_nvm_scene(file, texture_views, tmp_dir, resolution);
         }
     }
 
     /* SCENE_FOLDER */
     if (util::fs::dir_exists(in_scene.c_str())) {
-        from_images_and_camera_files(in_scene, texture_views, tmp_dir);
+        from_images_and_camera_files(in_scene, texture_views, tmp_dir, resolution);
     }
 
     /* MVE_SCENE::EMBEDDING */
@@ -240,7 +281,7 @@ generate_texture_views(std::string const & in_scene,
     if (pos != std::string::npos) {
         std::string scene_dir = in_scene.substr(0, pos);
         std::string image_name = in_scene.substr(pos + 2, in_scene.size());
-        from_mve_scene(scene_dir, image_name, texture_views);
+        from_mve_scene(scene_dir, image_name, texture_views, resolution);
     }
 
     std::sort(texture_views->begin(), texture_views->end(),

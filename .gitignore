@@ -1,4 +1,3 @@
 build/
-elibs/
-!elibs/CMakeLists/*
-!elibs/CMakeLists.txt
+cmake-build-*
+.idea

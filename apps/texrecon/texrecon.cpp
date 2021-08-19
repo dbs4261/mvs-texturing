@@ -48,14 +48,9 @@ int main(int argc, char **argv) {
     }
 
     std::string const tmp_dir = util::fs::join_path(out_dir, "tmp");
-    if (!util::fs::dir_exists(tmp_dir.c_str())) {
-        util::fs::mkdir(tmp_dir.c_str());
-    } else {
-        std::cerr
-            << "Temporary directory \"tmp\" exists within the destination directory.\n"
-            << "Cannot continue since this directory would be delete in the end.\n"
-            << std::endl;
-        std::exit(EXIT_FAILURE);
+    bool preexisting_temp_dir = util::fs::dir_exists(tmp_dir.c_str());
+    if (!preexisting_temp_dir) {
+      util::fs::mkdir(tmp_dir.c_str());
     }
 
     // Set the number of threads to use.
@@ -77,7 +72,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating texture views: " << std::endl;
     tex::TextureViews texture_views;
-    tex::generate_texture_views(conf.in_scene, &texture_views, tmp_dir);
+    tex::generate_texture_views(conf.in_scene, &texture_views, tmp_dir, conf.resolution);
 
     write_string_to_file(conf.out_prefix + ".conf", conf.to_string());
     timer.measure("Loading");
@@ -233,10 +228,15 @@ int main(int argc, char **argv) {
     }
 
     /* Remove temporary files. */
-    for (util::fs::File const & file : util::fs::Directory(tmp_dir)) {
+    if (!preexisting_temp_dir) {
+      for (util::fs::File const & file : util::fs::Directory(tmp_dir)) {
         util::fs::unlink(util::fs::join_path(file.path, file.name).c_str());
+      }
+      util::fs::rmdir(tmp_dir.c_str());
+    } else {
+      std::cout << "Skipping cleaning out temporary directory and temporary files"
+                   " as the directory existed before texrecon started." << std::endl;
     }
-    util::fs::rmdir(tmp_dir.c_str());
 
     return EXIT_SUCCESS;
 }

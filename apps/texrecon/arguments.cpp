@@ -51,6 +51,7 @@ Arguments parse_args(int argc, char **argv) {
         "\nA path and name for the output files, e.g. <path>/<to>/my_textured_mesh"
         "\nDon't append an obj extension. The application does that itself because it outputs multiple files (mesh, material file, texture files)."
         "\n");
+    args.add_option('r',"resolution", true, "The number of times the input images resolution should be halved");
     args.add_option('D',"data_cost_file", true,
         "Skip calculation of data costs and use the ones provided in the given file");
     args.add_option('L',"labeling_file", true,
@@ -105,11 +106,15 @@ Arguments parse_args(int argc, char **argv) {
     conf.write_view_selection_model = false;
 
     conf.num_threads = -1;
+    conf.resolution = 0;
 
     /* Handle optional arguments. */
     for (util::ArgResult const* i = args.next_option();
          i != 0; i = args.next_option()) {
         switch (i->opt->sopt) {
+        case 'r':
+            conf.resolution = std::stoul(i->arg);
+        break;
         case 'v':
             conf.write_view_selection_model = true;
         break;
@@ -173,6 +178,7 @@ Arguments::to_string(){
         << "Output prefix: \t" << out_prefix << std::endl
         << "Datacost file: \t" << data_cost_file << std::endl
         << "Labeling file: \t" << labeling_file << std::endl
+        << "Image resolution: 1/\t" << (1u << resolution) << std::endl
         << "Data term: \t" << choice_string<tex::DataTerm>(settings.data_term) << std::endl
         << "Smoothness term: \t" << choice_string<tex::SmoothnessTerm>(settings.smoothness_term) << std::endl
         << "Outlier removal method: \t" << choice_string<tex::OutlierRemoval>(settings.outlier_removal) << std::endl

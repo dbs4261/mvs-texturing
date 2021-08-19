@@ -49,8 +49,8 @@ prepare_mesh(mve::MeshInfo * mesh_info, mve::TriangleMesh::Ptr mesh);
   * Generates TextureViews from the in_scene.
   */
 void
-generate_texture_views(std::string const & in_scene,
-    TextureViews * texture_views, std::string const & tmp_dir);
+generate_texture_views(std::string const & in_scene, TextureViews * texture_views,
+    std::string const & tmp_dir, unsigned int resolution);
 
 /**
   * Builds up the meshes face adjacency graph using the vertex_infos
