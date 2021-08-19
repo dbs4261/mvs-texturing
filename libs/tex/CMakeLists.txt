@@ -1,10 +1,11 @@
 file (GLOB HEADERS "*.h")
 file (GLOB SOURCES "[^_]*.cpp")
 
-add_library(tex STATIC ${SOURCES})
-if (IPO_SUPPORTED)
-    set_target_properties(tex PROPERTIES INTERPROCEDURAL_OPTIMIZATION True)
-endif()
+add_library(tex ${SOURCES})
+set_target_properties(tex PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION
+        $<AND:$<BOOL:${CMAKE_CXX_LTO_SUPPORTED}>, $<BOOL:${ENABLE_IPO}>, $<NOT:$<CONFIG:Debug>>>
+)
 target_link_libraries(tex
     PUBLIC
         Eigen3::Eigen

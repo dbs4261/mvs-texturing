@@ -4,6 +4,8 @@ set(ignoreMe "${CMAKE_C_COMPILER}")
 
 set(TEXRECON_VERSION 21.6.3)
 
+option(BUILD_SHARED_LIBS "This will cause all libraries to be built shared" OFF)
+
 include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED)
 
